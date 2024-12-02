@@ -46,17 +46,17 @@ INSTALLED_APPS = [
 AUTH_USER_MODEL = 'authentication.CustomUser'
 
 # Add Twilio configurations
-TWILIO_ACCOUNT_SID = 'AC65a1cfdef9760c215be45e95f573323d'
-TWILIO_AUTH_TOKEN = '48a932a2e3d2159a3c97cc8186821928'
-TWILIO_PHONE_NUMBER = '+17753307591'
+TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID')
+TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN')
+TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER')
 
 # Settings for phone_verify
 PHONE_VERIFICATION = {
     'BACKEND': 'phone_verify.backends.twilio.TwilioBackend',
     'OPTIONS': {
-        'SID': 'AC65a1cfdef9760c215be45e95f573323d',
-        'SECRET': '48a932a2e3d2159a3c97cc8186821928',
-        'FROM': '+17753307591',
+        'SID': os.environ.get('TWILIO_ACCOUNT_SID'),
+        'SECRET': os.environ.get('TWILIO_AUTH_TOKEN'),
+        'FROM': os.environ.get('TWILIO_PHONE_NUMBER'),
         'SANDBOX_TOKEN':'123456',
     },
     'TOKEN_LENGTH': 6,
