@@ -29,6 +29,8 @@ ALLOWED_HOSTS = [
     "*"
 ]
 
+GDAL_LIBRARY_PATH = '/opt/homebrew/Cellar/gdal/3.10.0_2/lib/libgdal.dylib'
+GEOS_LIBRARY_PATH = '/opt/homebrew/Cellar/geos/3.13.0/lib/libgeos_c.dylib'
 
 # Application definition
 
@@ -39,11 +41,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.gis',
     'rest_framework',
     'authentication',
     'phone_verify',
     'corsheaders',
-
+    'restaurants',
 ]
 
 # Custom user model
@@ -94,7 +97,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
 ]
 
-CORS_ALLOW_ALL_ORIGINS = True 
+CORS_ALLOW_ALL_ORIGINS = True
 
 ROOT_URLCONF = 'zapeat.urls'
 
@@ -122,7 +125,7 @@ WSGI_APPLICATION = 'zapeat.wsgi.application'
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql",
+        "ENGINE": 'django.contrib.gis.db.backends.postgis',
         "NAME": os.environ.get("PSQL_DB_NAME"),
         "USER": os.environ.get("PSQL_DB_USER"),
         "PASSWORD": os.environ.get("PSQL_DB_PASSWORD"),
