@@ -25,7 +25,9 @@ SECRET_KEY = 'django-insecure-zfo-u!ty)y!8n=3y0=4q5vpra@@#&)e7&a!p@c_kma3*88muds
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "*"
+]
 
 
 # Application definition
@@ -40,6 +42,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'authentication',
     'phone_verify',
+    'corsheaders',
+
 ]
 
 # Custom user model
@@ -86,7 +90,11 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
 ]
+
+CORS_ALLOW_ALL_ORIGINS = True 
 
 ROOT_URLCONF = 'zapeat.urls'
 
