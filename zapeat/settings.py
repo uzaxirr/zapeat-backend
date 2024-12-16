@@ -61,6 +61,11 @@ TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID')
 TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN')
 TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER')
 
+# Civo Configs
+CIVO_REGION = os.environ.get('CIVO_REGION')
+CIVO_BUCKET_ACCESS_KEY = os.environ.get('CIVO_BUCKET_ACCESS_KEY')
+CIVO_BUCKET_SECRET_KEY = os.environ.get('CIVO_BUCKET_SECRET_KEY')
+
 # Settings for phone_verify
 PHONE_VERIFICATION = {
     'BACKEND': 'phone_verify.backends.twilio.TwilioBackend',
