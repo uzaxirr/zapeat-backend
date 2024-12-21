@@ -1,12 +1,27 @@
 import boto3
 from django.conf import settings
+from rest_framework.generics import ListAPIView
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
 from django.shortcuts import get_object_or_404
-from .models import Restaurant
 from botocore.exceptions import ClientError
-from .serializers import RestaurantSerializer
+from .models import (
+    Restaurant,
+    MenuCategory,
+    MenuItem,
+    CustomizationGroup,
+    CustomizationOption
+)
+from .serializers import (
+    RestaurantSerializer,
+    MenuCategorySerializer,
+    MenuItemSerializer,
+    CustomizationGroupSerializer,
+    CustomizationOptionSerializer,
+)
+from orders.models import Order
+from orders.serializers import OrderSerializer
 
 class RestaurantListView(APIView):
     # permission_classes = [permissions.IsAuthenticated]
@@ -33,7 +48,7 @@ class RestaurantDetailView(APIView):
 
     def put(self, request, pk):
         restaurant = get_object_or_404(Restaurant, pk=pk)
-        serializer = RestaurantSerializer(restaurant, data=request.data)
+        serializer = RestaurantSerializer(restaurant, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -45,9 +60,6 @@ class RestaurantDetailView(APIView):
         bank_accounts.delete()
         restaurant.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-
 
 class S3PreSignedUrlView(APIView):
     # permission_classes = [permissions.IsAuthenticated]
@@ -85,5 +97,219 @@ class S3PreSignedUrlView(APIView):
 
         return Response({'url': presigned_url}, status=status.HTTP_200_OK)
 
+# CRUD for MenuCategory
+class MenuCategoryAPIView(APIView):
+
     def get(self, request):
-        return Response({'url': "hjidj"}, status=status.HTTP_200_OK)
+        categories = MenuCategory.objects.all()
+        serializer = MenuCategorySerializer(categories, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        serializer = MenuCategorySerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class MenuCategoryDetailAPIView(APIView):
+    def get_object(self, pk):
+        return get_object_or_404(MenuCategory, pk=pk)
+
+    def get(self, request, pk):
+        category = self.get_object(pk)
+        serializer = MenuCategorySerializer(category)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def put(self, request, pk):
+        category = self.get_object(pk)
+        serializer = MenuCategorySerializer(category, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        category = self.get_object(pk)
+        category.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# CRUD for MenuItem
+class MenuItemAPIView(APIView):
+
+    def get(self, request):
+        items = MenuItem.objects.all()
+        serializer = MenuItemSerializer(items, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        serializer = MenuItemSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class MenuItemDetailAPIView(APIView):
+    def get_object(self, pk):
+        return get_object_or_404(MenuItem, pk=pk)
+
+    def get(self, request, pk):
+        item = self.get_object(pk)
+        serializer = MenuItemSerializer(item)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def put(self, request, pk):
+        item = self.get_object(pk)
+        serializer = MenuItemSerializer(item, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        item = self.get_object(pk)
+        item.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# CRUD for CustomizationGroup
+class CustomizationGroupAPIView(APIView):
+
+    def get(self, request):
+        groups = CustomizationGroup.objects.all()
+        serializer = CustomizationGroupSerializer(groups, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        serializer = CustomizationGroupSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CustomizationGroupDetailAPIView(APIView):
+    def get_object(self, pk):
+        return get_object_or_404(CustomizationGroup, pk=pk)
+
+    def get(self, request, pk):
+        group = self.get_object(pk)
+        serializer = CustomizationGroupSerializer(group)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def put(self, request, pk):
+        group = self.get_object(pk)
+        serializer = CustomizationGroupSerializer(group, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        group = self.get_object(pk)
+        group.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# CRUD for CustomizationOption
+class CustomizationOptionAPIView(APIView):
+
+    def get(self, request):
+        options = CustomizationOption.objects.all()
+        serializer = CustomizationOptionSerializer(options, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        serializer = CustomizationOptionSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CustomizationOptionDetailAPIView(APIView):
+    def get_object(self, pk):
+        return get_object_or_404(CustomizationOption, pk=pk)
+
+    def get(self, request, pk):
+        option = self.get_object(pk)
+        serializer = CustomizationOptionSerializer(option)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def put(self, request, pk):
+        option = self.get_object(pk)
+        serializer = CustomizationOptionSerializer(option, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        option = self.get_object(pk)
+        option.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+class RestaurantMenuAPIView(APIView):
+    def get(self, request, pk):
+        restaurant = get_object_or_404(Restaurant, pk=pk)
+        categories = MenuCategory.objects.filter(restaurant=restaurant)
+        data = []
+
+        for category in categories:
+            items = MenuItem.objects.filter(category=category)
+            category_data = {
+                "category_name": category.name,
+                "category_description": category.description,
+                "items": []
+            }
+
+            for item in items:
+                # Fetch customization groups and options if the item is customizable
+                customizations = []
+                if item.customizable:
+                    groups = CustomizationGroup.objects.filter(menu_item=item)
+                    for group in groups:
+                        options = CustomizationOption.objects.filter(group=group)
+                        customizations.append({
+                            "group_name": group.name,
+                            "options_allowed": group.options_allowed,
+                            "options": [{"name": option.name, "price": option.price, "food_type": option.food_type} for option in options]
+                        })
+
+                # Append each menu item
+                category_data["items"].append({
+                    "name": item.name,
+                    "price": item.price,
+                    "photo_url": item.photo_url,
+                    "customizable": item.customizable,
+                    "customizations": customizations,
+                    "food_type": item.food_type
+                })
+
+            data.append(category_data)
+
+        return Response({
+            "restaurant": restaurant.name,
+            "menu": data
+        }, status=status.HTTP_200_OK)
+
+class CreateOrderAPIView(APIView):
+    # permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = OrderSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            order = serializer.save()
+            return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class RestaurantOrdersAPIView(ListAPIView):
+    # permission_classes = [IsAuthenticated]
+    serializer_class = OrderSerializer
+
+    def get_queryset(self):
+        restaurant = self.request.user.restaurant  # Assuming Restaurant is linked to User
+        return Order.objects.filter(restaurant=restaurant).order_by('-created_at')

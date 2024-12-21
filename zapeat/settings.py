@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'phone_verify',
     'corsheaders',
     'restaurants',
+    'orders',
 ]
 
 # Custom user model

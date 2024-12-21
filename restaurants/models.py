@@ -13,6 +13,18 @@ WEEKDAYS = [
     (7, _("Sunday")),
 ]
 
+SPICE_LEVEL_CHOICES = [
+    (1, 'Mild'),
+    (2, 'Medium'),
+    (3, 'Spicy')
+]
+
+SWEETNESS_LEVEL_CHOICES = [
+    (1, 'Low'),
+    (2, 'Medium'),
+    (3, 'High')
+]
+
 class OpeningTime(models.Model):
     weekday = models.IntegerField(
         choices=WEEKDAYS,
@@ -26,6 +38,21 @@ class OpeningTime(models.Model):
     class Meta:
         verbose_name = "Opening Time"
         verbose_name_plural = "Opening Times"
+        ordering = ['weekday']
+
+class ItemAvailability(models.Model):
+    weekday = models.IntegerField(
+        choices=WEEKDAYS,
+    )
+    from_hour = models.TimeField()
+    to_hour = models.TimeField()
+
+    def __str__(self):
+        return f"{dict(WEEKDAYS)[self.weekday]} {self.from_hour}-{self.to_hour}"
+
+    class Meta:
+        verbose_name = "Item Availability"
+        verbose_name_plural = "Item Availabilities"
         ordering = ['weekday']
 
 class BankAccount(models.Model):
@@ -102,6 +129,12 @@ class Restaurant(models.Model):
         ('FINE_DINE', 'Fine Dine')
     ]
 
+    SERVING_STYLE_CHOICES = [
+        ('BUFFET', 'Buffet'),
+        ('SELF_SERVICE', 'Self Service'),
+        ('TABLE_SERVICE', 'Table Service')
+    ]
+
     # Services Choices
     SERVICES_CHOICES = [
         ('DINE_IN', 'Dine-in'),
@@ -113,6 +146,13 @@ class Restaurant(models.Model):
         max_length=20,
         choices=CATEGORY_CHOICES,
         help_text="Select the restaurant category"
+    )
+
+    service_style = models.CharField(
+        max_length=20,
+        choices=SERVING_STYLE_CHOICES,
+        default='SELF_SERVICE',
+        help_text="Select the restaurant serving style"
     )
 
     # Services Field (support multiple selections)
@@ -197,6 +237,66 @@ class Restaurant(models.Model):
         help_text="Goods and Services Tax Identification Number"
     )
 
+    seating_capacity = models.PositiveIntegerField(
+        help_text="Number of seats available for dine-in customers",
+        default=0
+    )
+
+    publicly_accessible = models.BooleanField(
+        default=True,
+        help_text="Check if the restaurant is publicly accessible"
+    )
+
+    organised_seating = models.BooleanField(
+        default=False,
+        help_text="Check if the restaurant has organised seating"
+    )
+
+    base_parcel_charges = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        help_text="Parcel charges for takeaway orders",
+        default=0.0
+    )
+
+    additional_parcel_charges = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        help_text="Additional Parcel charges per item for takeaway orders",
+        default=0.0
+    )
+
+    associated_pos = models.CharField(
+        max_length=200,
+        help_text="Associated POS system with the restaurant",
+        blank=True,
+        null=True
+    )
+
+    owner_name = models.CharField(
+        max_length=200,
+        help_text="Owner's Name",
+        blank=True,
+        null=True
+    )
+
+    owner_details = models.TextField(
+        help_text="Owner's Contact Details",
+        blank=True,
+        null=True
+    )
+
+    kitchen_closing_time = models.TimeField(
+        help_text="Kitchen closing time",
+        blank=True,
+        null=True
+    )
+
+    is_open = models.BooleanField(
+        default=True,
+        help_text="Check if the restaurant is currently open"
+    )
+
     # Timestamp fields
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -208,3 +308,96 @@ class Restaurant(models.Model):
         verbose_name = 'Restaurant'
         verbose_name_plural = 'Restaurants'
         ordering = ['-created_at']
+
+
+# Menu Category (linked to Restaurant)
+class MenuCategory(models.Model):
+    restaurant = models.ForeignKey(Restaurant, related_name="categories", on_delete=models.CASCADE)
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.name} - {self.restaurant.name}"
+
+
+# Menu Item (linked to MenuCategory)
+class MenuItem(models.Model):
+    FOOD_TYPE = [
+        ('VEG', 'Vegetarian'),
+        ('NON-VEG', 'Non-Vegetarian'),
+        ('EGG', 'Egg')
+    ]
+    category = models.ForeignKey(MenuCategory, related_name="items", on_delete=models.CASCADE)
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    customizable = models.BooleanField(default=False)
+    photo_url = models.URLField(blank=True, null=True)
+    food_type = models.CharField(
+        max_length=20,
+        choices=FOOD_TYPE,
+        help_text="Select available food type"
+    )
+    spice_level = models.PositiveIntegerField(
+        choices=SPICE_LEVEL_CHOICES,
+        default=1,  # Default to Mild
+        help_text="Select the spice level for this menu item (1 = Mild, 2 = Medium, 3 = Spicy)"
+    )
+    sweetness_level = models.PositiveIntegerField(
+        choices=SWEETNESS_LEVEL_CHOICES,
+        default=1,  # Default to Medium
+        help_text="Select the sweetness level for this menu item (1 = Low, 2 = Medium, 3 = High)"
+    )
+    availability_times = models.ManyToManyField(
+        ItemAvailability,
+        related_name="menu_items",
+        blank=True,
+        help_text="Select the availability times for this menu item"
+    )
+    must_try = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.name} - {self.category.name}"
+
+
+# Customization Group (linked to MenuItem)
+class CustomizationGroup(models.Model):
+    menu_item = models.ForeignKey(MenuItem, related_name="customization_groups", on_delete=models.CASCADE)
+    name = models.CharField(max_length=255)
+    max_options_allowed = models.PositiveIntegerField(default=1)  # Max number of options allowed
+    min_options_allowed = models.PositiveIntegerField(default=0)  # Min number of options allowed
+
+    def __str__(self):
+        return f"{self.name} - {self.menu_item.name}"
+
+
+# Customization Option (linked to CustomizationGroup)
+class CustomizationOption(models.Model):
+    FOOD_TYPE = [
+        ('VEG', 'Vegetarian'),
+        ('NON-VEG', 'Non-Vegetarian'),
+        ('EGG', 'Egg')
+    ]
+    group = models.ForeignKey(CustomizationGroup, related_name="options", on_delete=models.CASCADE)
+    name = models.CharField(max_length=255)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    food_type = models.CharField(
+        max_length=20,
+        choices=FOOD_TYPE,
+        help_text="Select available food type"
+    )
+    spice_level = models.PositiveIntegerField(
+        choices=SPICE_LEVEL_CHOICES,
+        default=1,  # Default to Mild
+        help_text="Select the spice level for this menu item (1 = Mild, 2 = Medium, 3 = Spicy)"
+    )
+    sweetness_level = models.PositiveIntegerField(
+        choices=SWEETNESS_LEVEL_CHOICES,
+        default=1,  # Default to Medium
+        help_text="Select the sweetness level for this menu item (1 = Low, 2 = Medium, 3 = High)"
+    )
+
+
+def __str__(self):
+        return f"{self.name} - {self.group.name}"
+

@@ -1,5 +1,7 @@
 from rest_framework import serializers
-from restaurants.models import Restaurant, Location, OpeningTime, BankAccount
+from restaurants.models import Restaurant, Location, OpeningTime, BankAccount, MenuCategory, MenuItem, \
+    CustomizationGroup, CustomizationOption
+
 
 class LocationSerializer(serializers.ModelSerializer):
     class Meta:
@@ -90,3 +92,26 @@ class RestaurantSerializer(serializers.ModelSerializer):
             instance.bank_accounts.set(bank_accounts)
 
         return instance
+
+class MenuCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MenuCategory
+        fields = '__all__'
+
+
+class MenuItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MenuItem
+        fields = '__all__'
+
+
+class CustomizationGroupSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomizationGroup
+        fields = '__all__'
+
+
+class CustomizationOptionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomizationOption
+        fields = '__all__'
