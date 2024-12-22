@@ -18,12 +18,12 @@ class SMSService:
             logging.error(f"Twilio Client Initialization Error: {e}")
             raise
 
-    def send_verification_sms(self, phone_number: str, verification_code: str):
+    def send_verification_sms(self, mobile_number: str, verification_code: str):
         """
         Send verification SMS with error handling and logging
         
         Args:
-            phone_number (str): Recipient's phone number in E.164 format
+            mobile_number (str): Recipient's phone number in E.164 format
             verification_code (str): 6-digit verification code
         
         Returns:
@@ -33,11 +33,11 @@ class SMSService:
             message = self.client.messages.create(
                 body=f"Your verification code is: {verification_code}",
                 from_=settings.TWILIO_PHONE_NUMBER,
-                to=phone_number
+                to=mobile_number
             )
 
             # Log successful SMS sending
-            logging.info(f"Verification SMS sent to {phone_number}. SID: {message.sid}")
+            logging.info(f"Verification SMS sent to {mobile_number}. SID: {message.sid}")
             return True
 
         except TwilioRestException as twilio_error:

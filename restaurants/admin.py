@@ -29,7 +29,7 @@ class LocationAdmin(admin.ModelAdmin):
 
 @admin.register(Restaurant)
 class RestaurantAdmin(admin.ModelAdmin):
-    list_display = ('name', 'category', 'phone_number', 'email', 'is_open')
+    list_display = ('name', 'category', 'mobile_number', 'email', 'is_open')
     search_fields = ('name', 'phone_number', 'email')
     list_filter = ('category', 'is_open')
     ordering = ['-created_at']

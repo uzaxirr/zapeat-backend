@@ -44,6 +44,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         ('manager', 'Manager'),
         ('foh_staff', 'FOH Staff'),
         ('receptionist', 'Receptionist'),
+        ('customer', 'Customer'),
     ]
 
     mobile_number = models.CharField(max_length=15, unique=True)

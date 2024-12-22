@@ -1,57 +1,58 @@
 from rest_framework import serializers
-
-from orders.models import Order, OrderItem
+from .models import Order, OrderItem
 from restaurants.models import MenuItem
 
-class OrderItemSerializer(serializers.ModelSerializer):
-    menu_item = serializers.PrimaryKeyRelatedField(queryset=MenuItem.objects.all())
 
+class OrderItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderItem
-        fields = ['menu_item', 'quantity']
+        fields = ['menu_item', 'quantity', 'price']
+        extra_kwargs = {'order': {'required': False}}
+
 
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, write_only=True)
-    total_amount = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
-    status = serializers.CharField(read_only=True)
+    order_items = OrderItemSerializer(source='items', many=True, read_only=True)
+    customer_name = serializers.ReadOnlyField(source="customer.mobile_number")
+    restaurant_name = serializers.ReadOnlyField(source="restaurant.name")
 
     class Meta:
         model = Order
-        fields = ['id', 'customer', 'restaurant', 'items', 'total_amount', 'status', 'created_at']
-        read_only_fields = ['customer', 'total_amount', 'status', 'created_at']
+        fields = [
+            'id', 'customer', 'customer_name', 'restaurant', 'restaurant_name',
+            'total_amount', 'payment_status', 'order_status',
+            'special_instructions', 'created_at', 'updated_at', 'items', 'order_items'
+        ]
+        read_only_fields = ['id', 'customer', 'created_at', 'updated_at']
 
-    def validate(self, data):
-        # Ensure only customers can place orders
-        user = self.context['request'].user
-        if not user.is_customer():
-            raise serializers.ValidationError("Only customers can place orders.")
-        return data
+    # def validate(self, data):
+    #     items = data.get('items', [])
+    #     calculated_total = sum(item['price'] * item['quantity'] for item in items)
+    #     if abs(float(data['total_amount']) - calculated_total) > 0.01:
+    #         raise serializers.ValidationError({
+    #             "total_amount": f"Total amount ({data['total_amount']}) does not match sum of item prices ({calculated_total})"
+    #         })
+        
+    #     restaurant = data['restaurant']
+    #     for item in items:
+    #         menu_item = item['menu_item']
+    #         if menu_item.category.restaurant.id != restaurant.id:
+    #             raise serializers.ValidationError({
+    #                 "items": f"Menu item {menu_item.name} does not belong to the selected restaurant"
+    #             })
+        
+    #     return data
 
     def create(self, validated_data):
         items_data = validated_data.pop('items')
-        request = self.context['request']
-        customer = self.context['request'].user.customer  # Assuming Customer is linked to User
-        restaurant = validated_data['restaurant']
-
-        # Ensure the restaurant exists and the owner is valid
-        if not restaurant.owner == request.user:
-            raise serializers.ValidationError("You can only place orders at valid restaurants.")
-
-
-        # Create the order
-        order = Order.objects.create(customer=customer, restaurant=restaurant, status='PENDING')
-
-        total_amount = 0
-        for item_data in items_data:
-            menu_item = item_data['menu_item']
-            quantity = item_data['quantity']
-            price = menu_item.price * quantity
-
-            OrderItem.objects.create(order=order, menu_item=menu_item, quantity=quantity, price=menu_item.price)
-            total_amount += price
-
-        # Update the order's total amount
-        order.total_amount = total_amount
-        order.save()
-
+        import pdb; pdb.set_trace()
+        order = Order.objects.create(**validated_data)
+        
+        OrderItem.objects.bulk_create([
+            OrderItem(
+                order=order,
+                **item_data
+            ) for item_data in items_data
+        ])
+        
         return order

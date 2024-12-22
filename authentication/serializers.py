@@ -17,7 +17,7 @@ class SessionTokenGenerator:
     specific to OTP verification process.
     """
     @staticmethod
-    def generate_token(phone_number, verification_code):
+    def generate_token(mobile_number, verification_code):
         """
         Create a secure JWT token that:
         1. Includes phone number for verification
@@ -26,7 +26,7 @@ class SessionTokenGenerator:
         """
         # Payload includes phone number and verification code
         payload = {
-            'phone_number': phone_number,
+            'mobile_number': mobile_number,
             'session_code': verification_code,
             'exp': datetime.utcnow() + timedelta(minutes=10)  # Token expires in 10 minutes
         }
@@ -35,7 +35,7 @@ class SessionTokenGenerator:
         return jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
 
     @staticmethod
-    def validate_token(token, phone_number, verification_code):
+    def validate_token(token, mobile_number, verification_code):
         """
         Validate the session token by checking:
         1. Token is not expired
@@ -45,10 +45,11 @@ class SessionTokenGenerator:
         try:
             # Decode the token
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            
 
             # Validate phone number and verification code
             return (
-                    payload['phone_number'] == phone_number and
+                    payload['mobile_number'] == mobile_number and
                     payload['session_code'] == verification_code
             )
         except jwt.ExpiredSignatureError:
@@ -57,9 +58,9 @@ class SessionTokenGenerator:
             return False
 
 class PhoneSendVerificationSerializer(serializers.Serializer):
-    phone_number = serializers.CharField(max_length=20)
+    mobile_number = serializers.CharField(max_length=20)
 
-    def validate_phone_number(self, value):
+    def validate_mobile_number(self, value):
         """
         Comprehensive phone number validation:
         1. Parse using phonenumbers library
@@ -67,12 +68,12 @@ class PhoneSendVerificationSerializer(serializers.Serializer):
         3. Validate number structure
         """
         try:
-            phone_number = parse(value, None)
-            if not is_valid_number(phone_number):
+            mobile_number = parse(value, None)
+            if not is_valid_number(mobile_number):
                 raise serializers.ValidationError("Invalid phone number")
 
             # Normalize to international format
-            normalized_number = f"+{phone_number.country_code}{phone_number.national_number}"
+            normalized_number = f"+{mobile_number.country_code}{mobile_number.national_number}"
             return normalized_number
         except Exception:
             raise serializers.ValidationError("Invalid phone number format")
@@ -85,15 +86,17 @@ class PhoneSendVerificationSerializer(serializers.Serializer):
         3. Send SMS via Twilio
         4. Generate session token
         """
-        phone_number = self.validated_data['phone_number']
+        mobile_number = self.validated_data['mobile_number']
 
         # Generate a secure verification code
         verification_code = ''.join(secrets.choice('0123456789') for _ in range(6))
 
+        import pdb; pdb.set_trace()
+
         # Create or get user
         user, created = User.objects.get_or_create(
-            phone_number=phone_number,
-            defaults={'phone_number': phone_number}
+            mobile_number=mobile_number,
+            defaults={'mobile_number': mobile_number}
         )
 
         # Initialize SMS service
@@ -102,7 +105,7 @@ class PhoneSendVerificationSerializer(serializers.Serializer):
         try:
             # Send verification SMS
             sms_sent = sms_service.send_verification_sms(
-                phone_number,
+                mobile_number,
                 verification_code
             )
 
@@ -110,13 +113,13 @@ class PhoneSendVerificationSerializer(serializers.Serializer):
             if sms_sent:
                 # Generate session token with verification code
                 session_token = SessionTokenGenerator.generate_token(
-                    phone_number,
+                    mobile_number,
                     verification_code
                 )
 
                 return {
                     'session_token': session_token,
-                    'phone_number': phone_number
+                    'mobile_number': mobile_number
                 }
 
         except ValueError as e:
@@ -124,17 +127,17 @@ class PhoneSendVerificationSerializer(serializers.Serializer):
             raise serializers.ValidationError(str(e))
 
 class PhoneVerifySerializer(serializers.Serializer):
-    phone_number = serializers.CharField(max_length=20)
+    mobile_number = serializers.CharField(max_length=20)
     security_code = serializers.CharField(max_length=6)
     session_token = serializers.CharField(required=True)
 
-    def validate_phone_number(self, value):
+    def validate_mobile_number(self, value):
         """
         Validate and normalize phone number
         """
         try:
-            phone_number = parse(value, None)
-            return f"+{phone_number.country_code}{phone_number.national_number}"
+            mobile_number = parse(value, None)
+            return f"+{mobile_number.country_code}{mobile_number.national_number}"
         except Exception:
             raise serializers.ValidationError("Invalid phone number format")
 
@@ -145,21 +148,21 @@ class PhoneVerifySerializer(serializers.Serializer):
         2. Verify security code
         3. Mark user as verified
         """
-        phone_number = self.validated_data['phone_number']
+        mobile_number = self.validated_data['mobile_number']
         security_code = self.validated_data['security_code']
         session_token = self.validated_data['session_token']
 
         # Validate the session token
         if not SessionTokenGenerator.validate_token(
                 session_token,
-                phone_number,
+                mobile_number,
                 security_code
         ):
             raise serializers.ValidationError("Invalid or expired verification token")
 
         # Retrieve user
         try:
-            user = User.objects.get(phone_number=phone_number)
+            user = User.objects.get(mobile_number=mobile_number)
             user.is_phone_verified = True
             user.save()
             return user

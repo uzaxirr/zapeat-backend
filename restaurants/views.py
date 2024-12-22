@@ -296,7 +296,6 @@ class RestaurantMenuAPIView(APIView):
             "menu": data
         }, status=status.HTTP_200_OK)
 
-class CreateOrderAPIView(APIView):
     # permission_classes = [IsAuthenticated]
 
     def post(self, request):
