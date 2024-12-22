@@ -52,7 +52,16 @@ INSTALLED_APPS = [
     'corsheaders',
     'restaurants',
     'orders',
+    'drf_yasg',
 ]
+
+SWAGGER_SETTINGS = {
+    'SECURITY_DEFINITIONS': {
+        'Basic': {
+            'type': 'basic'
+        }
+    }
+}
 
 # Custom user model
 AUTH_USER_MODEL = 'authentication.CustomUser'
