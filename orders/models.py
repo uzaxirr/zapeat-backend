@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.db import models
-from restaurants.models import MenuItem, Restaurant
+from restaurants.models import MenuItem, Restaurant, CustomizationOption
 
 
 class Order(models.Model):
@@ -17,6 +17,13 @@ class Order(models.Model):
         ('READY', 'Ready for Pickup/Delivery'),
         ('COMPLETED', 'Completed'),
         ('CANCELLED', 'Cancelled'),
+
+    ]
+
+    RESTAURANT_STATUS = [
+        ('RECEIVED', 'Received'),
+        ('ACCEPTED', 'Accepted'),
+        ('REJECTED', 'Rejected'),
     ]
 
     # Link to User model
@@ -45,8 +52,14 @@ class Order(models.Model):
     order_status = models.CharField(
         max_length=10,
         choices=ORDER_STATUS,
-        default='RECEIVED',
+        default=ORDER_STATUS[0][0],
         help_text="Current status of the order"
+    )
+    restaurant_status = models.CharField(
+        max_length=10,
+        choices=RESTAURANT_STATUS,
+        default='RECEIVED',
+        help_text="Status of the order from the restaurant"
     )
     special_instructions = models.TextField(
         blank=True,
@@ -65,13 +78,13 @@ class Order(models.Model):
         verbose_name_plural = "Orders"
         ordering = ['-created_at']
 
-
 class OrderItem(models.Model):
     order = models.ForeignKey(
         Order,
         on_delete=models.CASCADE,
         related_name="items",  # Changed related_name to avoid clash
-        help_text="Order to which this item belongs"
+        help_text="Order to which this item belongs",
+        db_index=True
     )
     menu_item = models.ForeignKey(
         MenuItem,
@@ -81,7 +94,14 @@ class OrderItem(models.Model):
     )
     quantity = models.PositiveIntegerField(default=1, help_text="Quantity of the item ordered")
     price = models.DecimalField(max_digits=10, decimal_places=2, help_text="Price of the item at the time of order")
-    # customizations = models.TextField(blank=True, null=True, help_text="Customizations applied to the item")
+    customizations = models.ForeignKey(
+        CustomizationOption,
+        on_delete=models.SET_NULL,
+        related_name="order_items_customization",
+        blank=True,
+        null=True,
+        help_text="Customizations applied to the item"
+    )
 
     def __str__(self):
         return f"{self.menu_item.name} (x{self.quantity}) - Order #{self.order.id}"

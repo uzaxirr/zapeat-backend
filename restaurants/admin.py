@@ -29,9 +29,9 @@ class LocationAdmin(admin.ModelAdmin):
 
 @admin.register(Restaurant)
 class RestaurantAdmin(admin.ModelAdmin):
-    list_display = ('name', 'category', 'mobile_number', 'email', 'is_open')
+    list_display = ('name', 'category', 'mobile_number', 'email', 'is_online')
     search_fields = ('name', 'phone_number', 'email')
-    list_filter = ('category', 'is_open')
+    list_filter = ('category', 'is_online')
     ordering = ['-created_at']
     filter_horizontal = ('opening_times', 'bank_accounts')  # For many-to-many fields
 

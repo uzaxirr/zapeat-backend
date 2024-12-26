@@ -1,3 +1,7 @@
+from datetime import datetime
+from geopy.distance import geodesic
+
+
 from django.contrib.gis.db import models
 from django.utils.translation import gettext_lazy as _
 from django.core.validators import RegexValidator
@@ -116,6 +120,13 @@ class Location(models.Model):
     location = models.PointField(blank=True, null=True)
     longitude = models.FloatField()
     latitude = models.FloatField()
+
+    def distance_to(self, other_location):
+        return geodesic(
+            (self.latitude, self.longitude),
+            (other_location.latitude, other_location.longitude)
+        ).km
+
 
     def __str__(self):
         return f"{self.latitude}, {self.longitude}"
@@ -292,7 +303,7 @@ class Restaurant(models.Model):
         null=True
     )
 
-    is_open = models.BooleanField(
+    is_online = models.BooleanField(
         default=True,
         help_text="Check if the restaurant is currently open"
     )
@@ -300,6 +311,18 @@ class Restaurant(models.Model):
     # Timestamp fields
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    @property
+    def is_open(self):
+        now = datetime.now()
+        current_weekday = now.weekday() + 1  # Monday=1
+        current_time = now.time()
+
+        return self.opening_times.filter(
+            weekday=current_weekday,
+            from_hour__lte=current_time,
+            to_hour__gte=current_time
+        ).exists()
 
     def __str__(self):
         return self.name

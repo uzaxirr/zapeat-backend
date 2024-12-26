@@ -2,19 +2,37 @@ import logging
 from datetime import datetime, timedelta
 
 import jwt
+from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, viewsets
 from rest_framework.permissions import AllowAny
 from django.contrib.auth import login
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
-from authentication.serializers import PhoneVerifySerializer, PhoneSendVerificationSerializer
+
+from authentication.models import RestaurantStaff
+from authentication.serializers import PhoneVerifySerializer, PhoneSendVerificationSerializer, RestaurantStaffSerializer
 from zapeat import settings
 
 
 class SendVerificationCodeView(APIView):
     permission_classes = [AllowAny]
 
+    @swagger_auto_schema(
+        request_body=PhoneSendVerificationSerializer,
+        responses={
+            200: openapi.Response('Verification code sent successfully', schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'session_token': openapi.Schema(type=openapi.TYPE_STRING)
+                }
+            )),
+            400: 'Invalid request',
+            500: 'Server error'
+        }
+    )
     def post(self, request):
         serializer = PhoneSendVerificationSerializer(data=request.data)
 
@@ -42,6 +60,21 @@ class SendVerificationCodeView(APIView):
 class VerifyPhoneView(APIView):
     permission_classes = [AllowAny]
 
+    @swagger_auto_schema(
+        request_body=PhoneVerifySerializer,
+        responses={
+            200: openapi.Response('Phone verified successfully', schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'user_id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'is_verified': openapi.Schema(type=openapi.TYPE_BOOLEAN),
+                    'refresh_token': openapi.Schema(type=openapi.TYPE_STRING)
+                }
+            )),
+            400: 'Invalid request'
+        }
+    )
     def post(self, request):
         serializer = PhoneVerifySerializer(data=request.data)
 
@@ -101,3 +134,19 @@ class VerifyPhoneView(APIView):
             serializer.errors,
             status=status.HTTP_400_BAD_REQUEST
         )
+    
+class RestaurantStaffViewSet(viewsets.ModelViewSet):
+    serializer_class = RestaurantStaffSerializer
+    # permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return RestaurantStaff.objects.filter(restaurant_id=self.kwargs['restaurant_pk'])
+
+    @action(detail=False, methods=['GET'])
+    def my_roles(self, request):
+        roles = RestaurantStaff.objects.filter(
+            user=request.user,
+            is_active=True
+        )
+        serializer = self.get_serializer(roles, many=True)
+        return Response(serializer.data)
