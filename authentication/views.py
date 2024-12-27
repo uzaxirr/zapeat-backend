@@ -7,17 +7,17 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, viewsets
 from rest_framework.permissions import AllowAny
-from django.contrib.auth import login
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
 
 from authentication.models import RestaurantStaff
-from authentication.serializers import PhoneVerifySerializer, PhoneSendVerificationSerializer, RestaurantStaffSerializer
+from authentication.serializers import CustomerVerificationSerializer, PhoneVerifySerializer, PhoneSendVerificationSerializer, RestaurantStaffSerializer, RestaurantStaffVerificationSerializer
 from zapeat import settings
 
+from zapeat.std_utils import CustomAPIModule
 
-class SendVerificationCodeView(APIView):
+class SendVerificationCodeView(APIView, CustomAPIModule):
     permission_classes = [AllowAny]
 
     @swagger_auto_schema(
@@ -37,103 +37,25 @@ class SendVerificationCodeView(APIView):
         serializer = PhoneSendVerificationSerializer(data=request.data)
 
         try:
-            if serializer.is_valid():
-                result = serializer.send_verification()
-                return Response(
-                    {'session_token': result['session_token']},
-                    status=status.HTTP_200_OK
+            if not serializer.is_valid():
+                return self.validation_error_response(
+                    errors=serializer.errors,
+                    message="Invalid phone verification data"
                 )
 
-            return Response(
-                serializer.errors,
-                status=status.HTTP_400_BAD_REQUEST
+            result = serializer.send_verification()
+            return self.success_response(
+                data=result,
+                message="Verification code sent successfully"
             )
 
         except Exception as e:
-            # Comprehensive error logging and response
             logging.error(f"Verification Send Error: {e}")
-            return Response(
-                {'error': 'Verification process failed'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            return self.error_response(
+                message="Verification process failed",
+                errors={"detail": str(e)},
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
-class VerifyPhoneView(APIView):
-    permission_classes = [AllowAny]
-
-    @swagger_auto_schema(
-        request_body=PhoneVerifySerializer,
-        responses={
-            200: openapi.Response('Phone verified successfully', schema=openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    'message': openapi.Schema(type=openapi.TYPE_STRING),
-                    'user_id': openapi.Schema(type=openapi.TYPE_INTEGER),
-                    'is_verified': openapi.Schema(type=openapi.TYPE_BOOLEAN),
-                    'refresh_token': openapi.Schema(type=openapi.TYPE_STRING)
-                }
-            )),
-            400: 'Invalid request'
-        }
-    )
-    def post(self, request):
-        serializer = PhoneVerifySerializer(data=request.data)
-
-        if serializer.is_valid():
-            try:
-                user = serializer.verify_code()
-
-                # Generate tokens
-                access_token_expiration = datetime.utcnow() + timedelta(minutes=15)
-                refresh_token_expiration = datetime.utcnow() + timedelta(days=7)
-
-                access_token = jwt.encode(
-                    {
-                        'user_id': user.id,
-                        'exp': access_token_expiration
-                    },
-                    settings.SECRET_KEY,
-                    algorithm='HS256'
-                )
-
-                refresh_token = jwt.encode(
-                    {
-                        'user_id': user.id,
-                        'exp': refresh_token_expiration
-                    },
-                    settings.SECRET_KEY,
-                    algorithm='HS256'
-                )
-
-                # Set access token as a secure HTTP-only cookie
-                response = Response({
-                    'message': 'Phone number verified successfully',
-                    'user_id': user.id,
-                    'is_verified': user.is_phone_verified,
-                    'refresh_token': refresh_token  # Include refresh token in the response body
-                }, status=status.HTTP_200_OK)
-
-                # Add the access token to cookies
-                response.set_cookie(
-                    key='access_token',
-                    value=access_token,
-                    httponly=True,
-                    secure=True,  # Set to False in development, True in production
-                    samesite='Strict',  # Adjust based on your application's requirements
-                    max_age=15 * 60  # 15 minutes in seconds
-                )
-
-                return response
-
-            except Exception as e:
-                return Response(
-                    {'error': str(e)},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
-        return Response(
-            serializer.errors,
-            status=status.HTTP_400_BAD_REQUEST
-        )
     
 class RestaurantStaffViewSet(viewsets.ModelViewSet):
     serializer_class = RestaurantStaffSerializer
@@ -150,3 +72,86 @@ class RestaurantStaffViewSet(viewsets.ModelViewSet):
         )
         serializer = self.get_serializer(roles, many=True)
         return Response(serializer.data)
+    
+
+class BaseUserVerificationView(APIView):
+    permission_classes = [AllowAny]
+    verification_serializer_class = None
+
+    def generate_tokens(self, user):
+        from rest_framework_simplejwt.tokens import RefreshToken
+        
+        refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
+        refresh_token = str(refresh)
+        
+        return access_token, refresh_token
+
+    def get(self, request):
+        user = request.user
+        if not user.is_authenticated:
+            return Response(
+                {'error': 'Authentication required'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
+        serializer = self.get_user_serializer(user)
+        return Response(serializer.data)
+
+    @swagger_auto_schema(
+        request_body=PhoneVerifySerializer,
+        responses={
+            200: 'Verification successful',
+            400: 'Invalid request'
+        }
+    )
+    def post(self, request):
+        serializer = self.verification_serializer_class(data=request.data)
+
+        if serializer.is_valid():
+            try:
+                user = serializer.verify_code()
+                access_token, refresh_token = self.generate_tokens(user)
+
+                response = Response({
+                    'message': 'Verification successful',
+                    'user_id': user.id,
+                    'refresh_token': refresh_token
+                }, status=status.HTTP_200_OK)
+
+                response.set_cookie(
+                    key='access_token',
+                    value=f"Bearer {access_token}",
+                    httponly=True,
+                    secure=True,
+                    samesite='Strict',
+                    max_age=15 * 60
+                )
+                return response
+
+            except Exception as e:
+                return Response(
+                    {'error': str(e)},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+class CustomerVerificationView(BaseUserVerificationView):
+    verification_serializer_class = CustomerVerificationSerializer
+
+    def get_user_serializer(self, user):
+        from authentication.serializers import CustomerProfileSerializer
+        return CustomerProfileSerializer(user.customer_profile)
+
+class RestaurantStaffVerificationView(BaseUserVerificationView):
+    verification_serializer_class = RestaurantStaffVerificationSerializer
+
+    def get_user_serializer(self, user):
+        return RestaurantStaffSerializer(
+            user.staff_roles.filter(is_active=True),
+            many=True
+        )

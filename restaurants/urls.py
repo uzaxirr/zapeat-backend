@@ -3,10 +3,6 @@ from .views import (
     RestaurantListView,
     RestaurantDetailView,
     S3PreSignedUrlView, RestaurantMenuAPIView,
-    MenuCategoryAPIView, MenuCategoryDetailAPIView,
-    MenuItemAPIView, MenuItemDetailAPIView,
-    CustomizationGroupAPIView, CustomizationGroupDetailAPIView,
-    CustomizationOptionAPIView, CustomizationOptionDetailAPIView
 )
 
 urlpatterns = [

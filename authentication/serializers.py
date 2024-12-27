@@ -159,15 +159,19 @@ class PhoneVerifySerializer(serializers.Serializer):
         ):
             raise serializers.ValidationError("Invalid or expired verification token")
 
-        # Retrieve user
+        # Retrieve or create user
         try:
             user = User.objects.get(mobile_number=mobile_number)
-            user.is_phone_verified = True
-            user.role = CustomUser.ROLE_CHOICES[5][0]  # Set role to 'customer'
+            user.is_active = True  # Ensure user is active
             user.save()
             return user
         except User.DoesNotExist:
-            raise serializers.ValidationError("User not found")
+            # Create new user if doesn't exist
+            user = User.objects.create(
+                mobile_number=mobile_number,
+                is_active=True
+            )
+            return user
         
 class RestaurantStaffSerializer(serializers.ModelSerializer):
     mobile_number = serializers.CharField(write_only=True)
@@ -180,7 +184,37 @@ class RestaurantStaffSerializer(serializers.ModelSerializer):
         read_only_fields = ['joined_at']
 
     def create(self, validated_data):
+
         mobile_number = validated_data.pop('mobile_number')
         user = CustomUser.objects.get(mobile_number=mobile_number)
         validated_data['user'] = user
         return super().create(validated_data)
+
+class CustomerVerificationSerializer(PhoneVerifySerializer):
+    def verify_code(self):
+        user = super().verify_code()
+        
+        # Create or get customer profile
+        from authentication.models import CustomerProfile
+        CustomerProfile.objects.get_or_create(user=user)
+        
+        return user
+
+class RestaurantStaffVerificationSerializer(PhoneVerifySerializer):
+    restaurant = serializers.IntegerField(required=True)
+    role = serializers.ChoiceField(choices=RestaurantStaff.STAFF_ROLES)
+
+    def verify_code(self):
+        user = super().verify_code()
+        
+        # Create restaurant staff profile
+        restaurant_id = self.validated_data['restaurant']
+        role = self.validated_data['role']
+        
+        staff, created = RestaurantStaff.objects.get_or_create(
+            user=user,
+            restaurant_id=restaurant_id,
+            defaults={'role': role, 'is_active': True}
+        )
+        
+        return user

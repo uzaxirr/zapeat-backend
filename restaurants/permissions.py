@@ -1,10 +1,10 @@
 from rest_framework import permissions
 
-class IsRestaurantStaffMember(permissions.BasePermission):
+class IsRestaurantAdmin(permissions.BasePermission):
     def has_permission(self, request, view):
-        restaurant_id = view.kwargs.get('restaurant_id')
-        return request.user.staff_roles.filter(
-            restaurant_id=restaurant_id,
-            is_active=True
-        ).exists()
+        if not request.user.is_authenticated:
+            return False
+        
+        restaurant_id = view.kwargs.get('pk')  # Get restaurant ID from URL
+        return request.user.is_restaurant_admin(restaurant_id)
     
