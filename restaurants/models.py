@@ -343,6 +343,7 @@ class Restaurant(models.Model):
         ordering = ['-created_at']
 
 #TODO: Add Cuisine model
+
 # class Cuisine(BaseModel):
 #     name = models.CharField(max_length=200, unique=True)
 #     restaurant = models.ForeignKey(

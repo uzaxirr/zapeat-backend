@@ -13,9 +13,20 @@ class OrderItemSerializer(serializers.ModelSerializer):
         fields = ['uuid', 'menu_item', 'quantity', 'price', 'customizations']
 
     def validate(self, attrs):
-        import pdb; pdb.set_trace()
-        pass
-
+        menu_item = attrs.get('menu_item')
+        quantity = attrs.get('quantity')
+        customizations = attrs.get('customizations')
+        
+        # Calculate base price from menu item and quantity
+        total_price = menu_item.price * quantity
+        
+        # Add customization price if any
+        if customizations:
+            total_price += customizations.price * quantity
+            
+        # Add calculated price to validated data
+        attrs['price'] = total_price
+        return attrs
 
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -36,16 +47,54 @@ class OrderSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         items_data = validated_data.pop('items')
         order = Order.objects.create(**validated_data)
-        total_price = 0
+        total_order_price = 0
 
         for item_data in items_data:
+            #TODO: fix price calculation
+            item_price = 0
             customizations = item_data.pop('customizations', None)
             menu_item = item_data['menu_item']
-            if menu_item:
-                total_price += menu_item.price * item_data['quantity']
+            quantity = item_data['quantity']
+            # Calculate item price
+            item_price = menu_item.price * quantity
+
+            # Add customization price if any
             if customizations:
-                total_price = total_price + customizations.price
-            item_data.pop('price')
-            OrderItem.objects.create(order=order, customizations=customizations, price=total_price, **item_data)
-        
+                item_price += customizations.price * quantity
+
+            # Add to total order price
+            total_order_price += item_price
+
+            # Create order item
+            item_data.pop('price', None)  # Remove price if exists
+            OrderItem.objects.create(
+                order=order,
+                customizations=customizations,
+                price=item_price,
+                **item_data
+        )
+
+        # Update order with total amount
+        order.total_amount = total_order_price
+        order.save()
         return order
+
+    # def create(self, validated_data):
+    #     items_data = validated_data.pop('items')
+    #     # import pdb; pdb.set_trace()
+    #     order = Order.objects.create(**validated_data)
+    #     order_price = 0
+    #
+    #     for item_data in items_data:
+    #         item_price = 0
+    #         customizations = item_data.pop('customizations', None)
+    #         menu_item = item_data['menu_item']
+    #         if menu_item:
+    #             item_price += menu_item.price * item_data['quantity']
+    #         if customizations:
+    #             total_price = item_price + customizations.price
+    #         item_data.pop('price')
+    #         OrderItem.objects.create(order=order, customizations=customizations, price=item_price, **item_data)
+    #     order.total_amount = total_price
+    #     import pdb; pdb.set_trace()
+    #     return order

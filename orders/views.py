@@ -1,8 +1,6 @@
 from django.shortcuts import get_object_or_404
-
 from authentication.models import Customer
 from orders.models import Order
-from authentication.serializers import User
 from orders.serializers import OrderSerializer
 from restaurants.models import Restaurant
 from zapeat.std_utils import CustomAPIModule
@@ -37,3 +35,15 @@ class RestaurantOrderView(APIView, CustomAPIModule):
         serializer.is_valid(raise_exception=True)
         serializer.save(customer=self.request.user, restaurant=restaurant)
         return self.success_response(data=serializer.data, message="Order created successfully")
+
+class DashboardOrdersView(APIView, CustomAPIModule):
+    model = Order
+    serializer_class = OrderSerializer
+
+    def get(self, request, *args, **kwargs):
+        """
+        Get all orders for a given restaurant
+        """
+        all_orders = self.model.objects.all()
+        serialized_orders = OrderSerializer(all_orders, many=True)
+        return self.success_response(data=serialized_orders.data)
