@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import (
-    RestaurantOrderView, AdminOrderView
+    RestaurantOrderView
 )
 
 # urlpatterns = [
@@ -13,7 +13,6 @@ from .views import (
 
 urlpatterns = [
     path('', RestaurantOrderView.as_view(), name='order-detail'),
-    path('admin/', AdminOrderView.as_view(), name='admin-orders'),
     # path('order/', RestaurantOrdersView.as_view(), name='order-list-create'),
     # path('orders/<int:pk>/', OrderDetailAPIView.as_view(), name='order-detail'),
     # path('order-items/', OrderItemListCreateAPIView.as_view(), name='order-item-list-create'),
