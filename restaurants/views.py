@@ -191,9 +191,9 @@ class RestaurantMenuAPIView(APIView, CustomAPIModule):
             for category in categories:
                 items = MenuItem.objects.filter(category=category)
                 category_data = {
-                    "category_name": category.name,
-                    "category_description": category.description,
-                    "items": []
+                    "name": category.name,
+                    "description": category.description,
+                    "menu_items": []
                 }
 
                 for item in items:
@@ -207,7 +207,7 @@ class RestaurantMenuAPIView(APIView, CustomAPIModule):
                                 "options": [{"name": option.name, "price": option.price, "food_type": option.food_type} for option in options]
                             })
 
-                    category_data["items"].append({
+                    category_data["menu_items"].append({
                         "name": item.name,
                         "price": item.price,
                         "photo_url": item.photo_url,
@@ -247,7 +247,7 @@ class RestaurantMenuAPIView(APIView, CustomAPIModule):
     def post(self, request, pk):
         try:
             restaurant = get_object_or_404(Restaurant, pk=pk)
-            menu_categories = request.data.get("menu_categories", [])
+            menu_categories = request.data.get("menu", [])
 
             if not menu_categories:
                 return self.validation_error_response(
