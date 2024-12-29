@@ -6,6 +6,8 @@ from django.contrib.gis.db import models
 from django.utils.translation import gettext_lazy as _
 from django.core.validators import RegexValidator
 
+from restaurants.base import BaseModel
+
 # Weekdays Constant
 WEEKDAYS = [
     (1, _("Monday")),
@@ -212,12 +214,20 @@ class Restaurant(models.Model):
         help_text="Restaurant location details"
     )
 
-    # Restaurant Logo
-    logo = models.ImageField(
-        upload_to='restaurant_logos/',
-        null=True,
+    address = models.TextField(
+        help_text="Restaurant address"
+    )
+
+    logo_url = models.URLField(
         blank=True,
-        help_text="Restaurant logo image"
+        null=True,
+        help_text="Restaurant logo URL"
+    )
+
+    banner_url = models.URLField(
+        blank=True,
+        null=True,
+        help_text="Restaurant banner URL"
     )
 
     # Opening Times Relationship
@@ -332,6 +342,22 @@ class Restaurant(models.Model):
         verbose_name_plural = 'Restaurants'
         ordering = ['-created_at']
 
+#TODO: Add Cuisine model
+# class Cuisine(BaseModel):
+#     name = models.CharField(max_length=200, unique=True)
+#     restaurant = models.ForeignKey(
+#         Restaurant,
+#         on_delete=models.CASCADE,
+#         related_name='cuisines',
+#     )
+#
+#     def __str__(self):
+#         return self.name
+#
+#     class Meta:
+#         verbose_name = 'Cuisine'
+#         verbose_name_plural = 'Cuisines'
+#         ordering = ['name']
 
 # Menu Category (linked to Restaurant)
 class MenuCategory(models.Model):

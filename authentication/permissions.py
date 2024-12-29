@@ -7,7 +7,7 @@ class IsRestaurantAdmin(permissions.BasePermission):
     def has_permission(self, request, view):
         restaurant_id = view.kwargs.get('restaurant_pk')
         return RestaurantStaff.objects.filter(
-            user=request.user,
+            mobile_number=request.user,
             restaurant_id=restaurant_id,
             role='RESTAURANT_ADMIN',
             is_active=True
@@ -17,7 +17,7 @@ class HasRestaurantStaffRole(permissions.BasePermission):
     def has_permission(self, request, view):
         restaurant_id = view.kwargs.get('restaurant_pk')
         return RestaurantStaff.objects.filter(
-            user=request.user,
+            mobile_number=request.user,
             restaurant_id=restaurant_id,
             is_active=True
         ).exists()

@@ -143,9 +143,10 @@ class S3PreSignedUrlView(APIView, CustomAPIModule):
             return None, str(e)
 
     def post(self, request):
+        body = request.data
         try:
             bucket_name = 'zapeat'
-            object_key = 'restaurant_logos/restaurant.jpg'  # Customize based on request or logic
+            object_key = f"restaurant_logos/{body['path']}"
             expiration_time = 3600  # URL validity time in seconds
 
             # Generate the pre-signed URL
@@ -175,7 +176,7 @@ class S3PreSignedUrlView(APIView, CustomAPIModule):
             )
 
 class RestaurantMenuAPIView(APIView, CustomAPIModule):
-    permission_classes = [IsAuthenticated, IsRestaurantAdmin]
+    # permission_classes = [IsAuthenticated, IsRestaurantAdmin]
 
     def get(self, request, pk):
         try:

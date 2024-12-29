@@ -53,7 +53,7 @@ class SendVerificationCodeView(APIView, CustomAPIModule):
             logging.error(f"Verification Send Error: {e}")
             return self.error_response(
                 message="Verification process failed",
-                errors={"detail": str(e)},
+                errors={"details": str(e)},
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
@@ -144,8 +144,8 @@ class CustomerVerificationView(BaseUserVerificationView):
     verification_serializer_class = CustomerVerificationSerializer
 
     def get_user_serializer(self, user):
-        from authentication.serializers import CustomerProfileSerializer
-        return CustomerProfileSerializer(user.customer_profile)
+        from authentication.serializers import CustomerSerializer
+        return CustomerSerializer(user.customer_profile)
 
 class RestaurantStaffVerificationView(BaseUserVerificationView):
     verification_serializer_class = RestaurantStaffVerificationSerializer

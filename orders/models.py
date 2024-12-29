@@ -1,5 +1,7 @@
 from django.conf import settings
 from django.db import models
+
+from restaurants.base import BaseModel
 from restaurants.models import MenuItem, Restaurant, CustomizationOption
 
 
@@ -78,7 +80,7 @@ class Order(models.Model):
         verbose_name_plural = "Orders"
         ordering = ['-created_at']
 
-class OrderItem(models.Model):
+class OrderItem(BaseModel):
     order = models.ForeignKey(
         Order,
         on_delete=models.CASCADE,

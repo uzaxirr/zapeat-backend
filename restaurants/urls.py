@@ -12,6 +12,8 @@ urlpatterns = [
     path('<int:pk>/', RestaurantDetailView.as_view(), name='restaurant-detail'),
     # List Menu
     path('<int:pk>/menu/', RestaurantMenuAPIView.as_view(), name='restaurant-menu'),
+
+    path('<int:restaurant_id>/orders/', include('orders.urls')),
     # Get S3 Pre-signed URL
     path('images/', S3PreSignedUrlView.as_view(), name='restaurant-images'),
 
