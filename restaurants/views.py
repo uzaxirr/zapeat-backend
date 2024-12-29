@@ -101,12 +101,16 @@ class RestaurantDetailView(APIView, CustomAPIModule):
     def delete(self, request, pk):
         try:
             restaurant = get_object_or_404(Restaurant, pk=pk)
+            #delete all staff members associated with this restaurant
+            restaurant.staff_members.all().delete()
+            #delete all bank accounts associated with this restaurant
             bank_accounts = restaurant.bank_accounts.all()
             bank_accounts.delete()
+            #delete the restaurant
             restaurant.delete()
 
             return self.success_response(
-                message="Restaurant and associated bank accounts deleted successfully",
+                message="Restaurant and associated data deleted successfully",
                 status_code=status.HTTP_204_NO_CONTENT
             )
         except Http404:

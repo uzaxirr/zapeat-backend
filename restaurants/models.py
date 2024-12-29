@@ -5,6 +5,7 @@ from geopy.distance import geodesic
 from django.contrib.gis.db import models
 from django.utils.translation import gettext_lazy as _
 from django.core.validators import RegexValidator
+from django.contrib.postgres.fields import ArrayField
 
 from restaurants.base import BaseModel
 
@@ -169,10 +170,13 @@ class Restaurant(models.Model):
     )
 
     # Services Field (support multiple selections)
-    services = models.CharField(
-        max_length=20,
-        choices=SERVICES_CHOICES,
-        help_text="Select available services"
+    services = ArrayField(
+        models.CharField(
+            max_length=20,
+            choices=SERVICES_CHOICES,
+        ),
+        default=list,
+        help_text="Select available services (can select multiple)"
     )
 
     # Cuisines Field (allowing multiple cuisines)

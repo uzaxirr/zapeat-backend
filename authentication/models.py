@@ -51,11 +51,6 @@ class CustomerManager(BaseUserManager):
 class Customer(CustomUser):
     name = models.CharField(max_length=100)
     preferences = models.JSONField(default=dict, blank=True)  # For storing food preferences, allergies, etc.
-    favorite_restaurants = models.ManyToManyField(
-        Restaurant,
-        related_name='favorited_by',
-        blank=True
-    )
 
     # USERNAME_FIELD = 'mobile_number'
     REQUIRED_FIELDS = ['name']

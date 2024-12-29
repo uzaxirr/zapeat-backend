@@ -3,25 +3,28 @@ from authentication.models import Customer
 from orders.models import Order
 from orders.serializers import OrderSerializer
 from restaurants.models import Restaurant
-from zapeat.std_utils import CustomAPIModule
+from zapeat.std_utils import CustomAPIModule, StandardResultsSetPagination
 from rest_framework.views import APIView
 
 
 class RestaurantOrderView(APIView, CustomAPIModule):
     model = Order
     serializer_class = OrderSerializer
+    pagination_class = StandardResultsSetPagination
 
     def get_restaurant(self):
-        restaurant_id = self.kwargs.get('restaurant_id')
-        return get_object_or_404(Restaurant, id=restaurant_id)
+            restaurant_id = self.kwargs.get('restaurant_id')
+            return get_object_or_404(Restaurant, id=restaurant_id)
 
     def get(self, request, *args, **kwargs):
         """
         Get all orders for a given restaurant
         """
+        paginator = self.pagination_class()
         restaurant = self.get_restaurant()
-        all_orders = self.model.objects.filter(restaurant_id=restaurant.id)
-        serialized_orders = OrderSerializer(all_orders, many=True)
+        all_orders = self.model.objects.filter(restaurant_id=restaurant.id).order_by('-created_at')
+        result_page = paginator.paginate_queryset(all_orders, request)
+        serialized_orders = OrderSerializer(result_page, many=True)
         return self.success_response(data=serialized_orders.data)
 
     def post(self, request, *args, **kwargs):
@@ -39,11 +42,15 @@ class RestaurantOrderView(APIView, CustomAPIModule):
 class DashboardOrdersView(APIView, CustomAPIModule):
     model = Order
     serializer_class = OrderSerializer
+    pagination_class = StandardResultsSetPagination
 
     def get(self, request, *args, **kwargs):
         """
         Get all orders for a given restaurant
         """
-        all_orders = self.model.objects.all()
-        serialized_orders = OrderSerializer(all_orders, many=True)
-        return self.success_response(data=serialized_orders.data)
+        paginator = self.pagination_class()
+        all_orders = self.model.objects.all().order_by('-created_at')
+        result_page = paginator.paginate_queryset(all_orders, request)
+        serialized_orders = OrderSerializer(result_page, many=True)
+
+        return paginator.get_paginated_response(serialized_orders.data)

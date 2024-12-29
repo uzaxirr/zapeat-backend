@@ -27,6 +27,13 @@ class RestaurantSerializer(serializers.ModelSerializer):
         model = Restaurant
         fields = '__all__'
         read_only_fields = ['created_at', 'updated_at']
+    
+    def validate_services(self, value):
+        valid_services = [choice[0] for choice in Restaurant.SERVICES_CHOICES]
+        for service in value:
+            if service not in valid_services:
+                raise serializers.ValidationError(f"Invalid service: {service}")
+        return value
 
     def create(self, validated_data):
         location_data = validated_data.pop('location', None)

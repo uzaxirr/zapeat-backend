@@ -1,6 +1,7 @@
 from rest_framework.response import Response
 from rest_framework import status
 from typing import Any, Dict, Optional
+from rest_framework.pagination import PageNumberPagination
 
 class CustomAPIModule:
     """
@@ -98,3 +99,8 @@ class CustomAPIModule:
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             errors=errors
         )
+    
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
