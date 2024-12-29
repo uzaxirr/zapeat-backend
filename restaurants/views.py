@@ -254,34 +254,36 @@ class RestaurantMenuAPIView(APIView, CustomAPIModule):
                     errors={"menu_categories": ["Menu categories are required."]},
                     message="Missing required data"
                 )
+            
+            # Delete all existing menu data for this restaurant
+            MenuCategory.objects.filter(restaurant=restaurant).delete()
 
             # Process menu categories and items
             for category_data in menu_categories:
-                category, created = MenuCategory.objects.get_or_create(
+                category = MenuCategory.objects.get_or_create(
                     name=category_data["name"],
                     restaurant=restaurant,
                     defaults={"description": category_data.get("description", "")}
                 )
 
                 for item_data in category_data.get("menu_items", []):
-                    menu_item, created = MenuItem.objects.get_or_create(
+                    menu_item = MenuItem.objects.create(
                         name=item_data["name"],
-                        category=category,
-                        defaults={
-                            "description": item_data.get("description", ""),
-                            "price": item_data["price"],
-                            "photo_url": item_data.get("photo_url", ""),
-                            "customizable": item_data.get("customizable", False),
-                            "food_type": item_data.get("food_type"),
-                            "spice_level": item_data.get("spice_level", 0),
-                            "sweetness_level": item_data.get("sweetness_level", 0),
-                            "must_try": item_data.get("must_try", False)
-                        }
+                        category=category[0] if isinstance(category, tuple) else category,
+                        description = item_data.get("description", ""),
+                        price = item_data["price"],
+                        photo_url = item_data.get("photo_url", ""),
+                        customizable = item_data.get("customizable", False),
+                        food_type = item_data.get("food_type"),
+                        spice_level = item_data.get("spice_level", 0),
+                        sweetness_level = item_data.get("sweetness_level", 0),
+                        must_try = item_data.get("must_try", False),
+
                     )
 
                     if item_data.get("customizable"):
                         for group_data in item_data.get("customization_groups", []):
-                            group, created = CustomizationGroup.objects.get_or_create(
+                            group = CustomizationGroup.objects.get_or_create(
                                 name=group_data["name"],
                                 menu_item=menu_item,
                                 defaults={
@@ -301,10 +303,10 @@ class RestaurantMenuAPIView(APIView, CustomAPIModule):
                                         "sweetness_level": option_data.get("sweetness_level", 0)
                                     }
                                 )
-
             # Fetch updated menu for response
             categories = MenuCategory.objects.filter(restaurant=restaurant)
             response_data = []
+
 
             for category in categories:
                 items = MenuItem.objects.filter(category=category)
