@@ -293,17 +293,16 @@ class RestaurantMenuAPIView(APIView, CustomAPIModule):
                             )
 
                             for option_data in group_data.get("options", []):
-                                CustomizationOption.objects.get_or_create(
+                                CustomizationOption.objects.create(
                                     name=option_data["name"],
-                                    group=group,
-                                    defaults={
-                                        "price": option_data.get("price", 0.0),
-                                        "food_type": option_data.get("food_type"),
-                                        "spice_level": option_data.get("spice_level", 0),
-                                        "sweetness_level": option_data.get("sweetness_level", 0)
-                                    }
+                                    group=group[0] if isinstance(group, tuple) else group,
+                                    price=option_data.get("price", 0.0),
+                                    food_type=option_data.get("food_type"),
+                                    spice_level=option_data.get("spice_level", 0),
+                                    sweetness_level=option_data.get("sweetness_level", 0)
                                 )
             # Fetch updated menu for response
+
             categories = MenuCategory.objects.filter(restaurant=restaurant)
             response_data = []
 
@@ -318,6 +317,7 @@ class RestaurantMenuAPIView(APIView, CustomAPIModule):
 
                 for item in items:
                     customizations = []
+
                     if item.customizable:
                         groups = CustomizationGroup.objects.filter(menu_item=item)
                         for group in groups:
